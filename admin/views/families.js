@@ -252,7 +252,7 @@ export async function detail(app, { id }) {
             <tbody>${rooms.map((c) => `<tr><td><strong>${esc(c.class)}</strong></td>
               <td>${esc(c.semester)}</td>
               <td class="num">${c.waiting}</td></tr>`).join("")}</tbody></table>`,
-          buttons: [{ value: null, label: "Right you are" }],
+          buttons: [{ value: null, label: "OK" }],
         });
       }
       refresh();
