@@ -17,7 +17,7 @@
 // =============================================================================
 
 import { api } from "../assets/api.js";
-import { esc, $, $$, render, fmtDate, toastOk, toastErr } from "../assets/ui.js";
+import { esc, $, $$, render, fmtDate, modal, toastErr } from "../assets/ui.js";
 import { waiverSheet } from "./waiver.js";
 
 // Shown against anything the co-op already holds. Consistent wording, because
@@ -308,10 +308,22 @@ async function send(el) {
   try {
     const res = await api.submitRegistrationForm(body);
     if (!res?.ok) throw new Error(explain(res?.error));
-    toastOk("Registration sent.");
     payload = await api.registrationForm();
     draw(el);
     onDone();
+
+    // Said here rather than only on the page behind it. A parent who has just
+    // pressed Send is finished in their own mind and may well close the tab;
+    // the waivers are the one thing still owed, and they are easy to miss as
+    // a card further down a page that otherwise says "all done".
+    await modal({
+      title: "Registration submitted!",
+      body: `<p>The next page has important waivers; please sign them and bring
+        them in when you can.</p>
+        <p class="mt">We recommend dropping them off at our Mom's Tea and
+        Information meeting — it's the easiest time!</p>`,
+      buttons: [{ value: null, label: "OK", class: "btn-primary" }],
+    });
   } catch (e) {
     btn.disabled = false;
     state.textContent = "";
