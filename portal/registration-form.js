@@ -92,8 +92,10 @@ function drawSubmitted(el) {
     <div class="card-head"><h3>Waiver</h3></div>
 
     <div class="note note-warn">
-      Please print the attached waivers and bring them to either North Mountain
-      Church or the next in-person Koinonia event.
+      Please print the attached waivers, sign them, and bring them in when you
+      can. We recommend dropping them off at our Mom's Tea and Information
+      meeting — it's the easiest time! Failing that, North Mountain Church or
+      the next in-person Koinonia event.
     </div>
 
     <p class="muted mt">Please note that there are three separate forms. The
