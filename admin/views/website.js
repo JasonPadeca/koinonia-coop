@@ -97,6 +97,7 @@ export async function show(app) {
       </table>
     </div>
 
+    ${logoCard(images)}
     ${imagesCard(images)}
 
     <div class="note mt">
@@ -318,7 +319,52 @@ function wire(app, pageName, blocks) {
 // importer judged to be furniture — the logo, a tracking pixel — is not offered,
 // because "which of these 40 images did you mean" is a worse screen than this.
 // =============================================================================
+
+/** The logo row is not a page; the publishing job writes it over every logo. */
+const LOGO_PAGE = "__logo__";
+
+function logoCard(images) {
+  const im = images.find((x) => x.page === LOGO_PAGE);
+  if (!im) return "";
+
+  const changed = !!im.upload_path;
+  return `<div class="card mt">
+    <div class="card-head"><h3>Logo</h3></div>
+    <p class="muted">One picture, used everywhere: the top of every page, the
+      family and teacher sections, the sign-up pages and the printed waiver.
+      Change it here and all of them follow within about ten minutes.</p>
+
+    <div class="imagelist mt">
+      <div class="imagerow" data-page="${esc(im.page)}" data-key="${esc(im.img_key)}">
+        <img class="imagethumb"
+             src="${changed ? esc(api.siteImageUrl(im.upload_path))
+                            : esc("../" + im.original_src)}" alt="">
+        <div class="imagemeta">
+          <strong>Koinonia logo</strong>
+          ${changed
+            ? `<div><span class="badge badge-ok">New logo chosen</span></div>`
+            : `<div class="muted tiny">The logo the site was set up with</div>`}
+          <div class="muted tiny mt">A square picture works best. It is shown
+            very small in places, so something with fine detail or small writing
+            will not read.</div>
+          <div class="btn-row mt">
+            <label class="btn btn-sm btn-primary">
+              Choose a logo…
+              <input type="file" accept="image/jpeg,image/png,image/webp" hidden>
+            </label>
+            ${changed
+              ? `<button class="btn btn-sm" data-revert-img>Put the old one back</button>`
+              : ""}
+            <span class="muted imagestate"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
 function imagesCard(images) {
+  images = images.filter((im) => im.page !== LOGO_PAGE);
   if (!images.length) return "";
 
   return `<div class="card mt">

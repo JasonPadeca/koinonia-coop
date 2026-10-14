@@ -175,6 +175,17 @@ def main():
 # minutes without a way to mark an upload as done.
 # =============================================================================
 MAX_WIDTH = 1600
+
+# The logo is a different animal from a photograph: it is shown at 26 pixels in
+# a nav bar and never larger than a printed letterhead, so 512 is generous and
+# 1600 would be sixteen copies of a wasted download.
+LOGO_PAGE = "__logo__"
+LOGO_MAX_WIDTH = 512
+
+# Pristine copies, so "put the old one back" has something to put back. The
+# logo row overwrites files in place rather than writing a new hashed name, so
+# without this the original is gone the first time somebody uploads.
+LOGO_BACKUP_DIR = "assets/logo-originals"
 JPEG_QUALITY = 82
 
 
@@ -222,6 +233,111 @@ def shrink(raw):
     return out.getvalue(), ".jpg"
 
 
+def logo_targets(root):
+    """Every file on disk that is a logo.
+
+    The app's own, plus the size variants WordPress made, which the mirrored
+    public pages point at. Names are kept exactly as they are: the point of
+    writing over them is that no HTML has to change and all ten references in
+    the hand-written pages follow at once.
+    """
+    found = []
+
+    app_logo = root / "assets" / "koinonia-logo.jpg"
+    if app_logo.exists():
+        found.append(app_logo)
+
+    site = root / "site"
+    if site.is_dir():
+        found += sorted(
+            p for p in site.iterdir()
+            if p.is_file()
+            and "logo" in p.name.lower()
+            and p.suffix.lower() in (".jpg", ".jpeg", ".png", ".webp", ".gif")
+        )
+
+    return found
+
+
+def as_logo(raw, suffix):
+    """The uploaded image, sized for a logo and in the target's own format."""
+    try:
+        from PIL import Image
+    except ImportError:
+        print("    (Pillow not available — using the file as uploaded)")
+        return raw
+
+    import io
+    im = Image.open(io.BytesIO(raw))
+    try:
+        from PIL import ImageOps
+        im = ImageOps.exif_transpose(im)
+    except Exception:
+        pass
+
+    if im.width > LOGO_MAX_WIDTH:
+        im = im.resize((LOGO_MAX_WIDTH, round(im.height * LOGO_MAX_WIDTH / im.width)),
+                       Image.LANCZOS)
+
+    fmt = {".png": "PNG", ".webp": "WEBP", ".gif": "PNG"}.get(suffix.lower(), "JPEG")
+    if fmt == "JPEG" and im.mode in ("RGBA", "P", "LA"):
+        # A logo with a transparent corner goes black on a JPEG background
+        # rather than white, which looks like damage.
+        bg = Image.new("RGB", im.size, (255, 255, 255))
+        bg.paste(im, mask=im.convert("RGBA").split()[-1])
+        im = bg
+    elif fmt != "JPEG" and im.mode == "P":
+        im = im.convert("RGBA")
+
+    out = io.BytesIO()
+    if fmt == "JPEG":
+        im.save(out, "JPEG", quality=JPEG_QUALITY, optimize=True, progressive=True)
+    else:
+        im.save(out, fmt)
+    return out.getvalue()
+
+
+def publish_logo(root, row):
+    """Write the chosen logo over every logo file, or restore the originals."""
+    targets = logo_targets(root)
+    if not targets:
+        print("    ! no logo files found")
+        return 0
+
+    backup = root / LOGO_BACKUP_DIR
+    changed = 0
+
+    raw = None
+    if row.get("upload_path"):
+        obj = f"{SUPABASE_URL}/storage/v1/object/public/site-images/{row['upload_path']}"
+        try:
+            with urllib.request.urlopen(obj, timeout=120) as r:
+                raw = r.read()
+        except Exception as e:
+            print(f"    ! could not fetch {row['upload_path']}: {e}")
+            return 0
+
+    for dest in targets:
+        rel = dest.relative_to(root)
+        keep = backup / str(rel).replace("/", "__")
+
+        # Keep a pristine copy before the first overwrite, never after.
+        if not keep.exists():
+            keep.parent.mkdir(parents=True, exist_ok=True)
+            keep.write_bytes(dest.read_bytes())
+            print(f"    kept original {rel}")
+            changed += 1
+
+        data = as_logo(raw, dest.suffix) if raw is not None else keep.read_bytes()
+
+        if dest.read_bytes() != data:
+            dest.write_bytes(data)
+            print(f"    wrote {rel} ({len(data):,} bytes)")
+            changed += 1
+
+    return changed
+
+
 def publish_images(root):
     try:
         rows = fetch_images()
@@ -232,6 +348,12 @@ def publish_images(root):
     changed = 0
     for row in rows:
         page, key = row["page"], row["img_key"]
+
+        # Not a page. The logo is written over files rather than into a tag.
+        if page == LOGO_PAGE:
+            changed += publish_logo(root, row)
+            continue
+
         path = root / page
         if not path.exists():
             continue
