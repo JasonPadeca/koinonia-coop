@@ -297,6 +297,59 @@ def as_logo(raw, suffix):
     return out.getvalue()
 
 
+def publish_previews(root, logo_path):
+    """Point the link-preview tags at the logo we actually serve.
+
+    When somebody pastes the address into a text message or Facebook, the
+    picture in the preview comes from og:image. The mirrored pages inherited
+    WordPress's tags, which name /wp-content/uploads/... — a path that existed
+    on WordPress and does not exist here. Every one of them is a 404, so the
+    logo people still see in previews is a cached copy from before the move,
+    and it will decay to no picture at all as those caches expire.
+
+    The tags are rewritten to the logo's own address, with a short hash of its
+    contents on the end: the file name has to stay put so that nothing else
+    breaks, and without something changing in the URL the social caches would
+    hold the old picture indefinitely after a swap.
+    """
+    cname = root / "CNAME"
+    if not cname.exists():
+        return 0
+    domain = cname.read_text().strip().splitlines()[0].strip()
+    if not domain:
+        return 0
+
+    stamp = hashlib.sha1(logo_path.read_bytes()).hexdigest()[:8]
+    url = f"https://{domain}/assets/{logo_path.name}?v={stamp}"
+
+    changed = 0
+    for page in sorted(root.glob("**/*.html")):
+        if "logo-originals" in str(page):
+            continue
+        html = page.read_text(encoding="utf-8")
+        before = html
+
+        html = re.sub(
+            r'(<meta\s+property="og:image"\s+content=")[^"]*(")',
+            lambda m: m.group(1) + url + m.group(2), html)
+        html = re.sub(
+            r'(<meta\s+name="twitter:image"\s+content=")[^"]*(")',
+            lambda m: m.group(1) + url + m.group(2), html)
+
+        # The old numbers described WordPress's crops, not this file.
+        html = re.sub(
+            r'(<meta\s+property="og:image:(?:width|height)"\s+content=")[^"]*(")',
+            lambda m: m.group(1) + "512" + m.group(2), html)
+
+        if html != before:
+            page.write_text(html, encoding="utf-8")
+            changed += 1
+
+    if changed:
+        print(f"    link previews now point at {url} ({changed} pages)")
+    return changed
+
+
 def publish_logo(root, row):
     """Write the chosen logo over every logo file, or restore the originals."""
     targets = logo_targets(root)
@@ -334,6 +387,10 @@ def publish_logo(root, row):
             dest.write_bytes(data)
             print(f"    wrote {rel} ({len(data):,} bytes)")
             changed += 1
+
+    app_logo = root / "assets" / "koinonia-logo.jpg"
+    if app_logo.exists():
+        changed += publish_previews(root, app_logo)
 
     return changed
 
