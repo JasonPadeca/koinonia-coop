@@ -24,7 +24,11 @@ import { waiverSheet } from "./waiver.js";
 // a parent should learn the phrase once and then skim it.
 const IF_CHANGED = "Only needed if this is your first semester or it has changed";
 
-const CONDUCT_URL = "../about-koinonia-faq/";
+// Both documents are on Our Beliefs, the Code of Conduct directly beneath the
+// Statement of Faith. This pointed at the FAQ, which only mentions the Code of
+// Conduct in passing — so every parent who clicked through before ticking was
+// sent to a page that did not contain the thing they were agreeing to.
+const CONDUCT_URL = "../our-beliefs/";
 
 let payload = null;
 let onDone = null;
