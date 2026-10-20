@@ -63,13 +63,20 @@ function draw() {
           ${f.hint ? `<div class="hint">${esc(f.hint)}</div>` : ""}
         </div>`).join("")}
 
+      <!-- One tick, two documents, and they live on different pages: the
+           Statement of Faith on Our Beliefs, the Code of Conduct inside the
+           FAQ. The single link here named ../beliefs.html, which has never
+           existed on this site and returned a 404 from every browser. -->
       <div class="field">
-        <label class="check">
+        <label class="check" for="f-agree">
           <input type="checkbox" id="f-agree">
-          <span>I have read and agree to abide by Koinonia's
-            <a href="../beliefs.html" target="_blank" rel="noopener">Statement of
-            Faith and Code of Conduct</a>.</span>
+          <span>I have read and agree to abide by Koinonia's Statement of Faith
+            and Code of Conduct.</span>
         </label>
+        <div class="check-links">
+          <a href="../our-beliefs/" target="_blank" rel="noopener">Read the Statement of Faith</a>
+          <a href="../about-koinonia-faq/" target="_blank" rel="noopener">Read the Code of Conduct</a>
+        </div>
       </div>
 
       <!-- Hidden from people, irresistible to the scripts that fill in every

@@ -66,14 +66,62 @@
 
 #coop-apply-form .faint { color: var(--k-faint); font-weight: 400; }
 
+/* The one control on this form that must not be fiddly.
+ *
+ * It was a default browser checkbox — about 13 pixels square — and the people
+ * filling this in are mostly on phones or using reading glasses on a laptop.
+ * The box is now a comfortable size and the whole bordered row is the target,
+ * so the text counts as a click and precision is not required anywhere. */
 #coop-apply-form .check {
   display: flex;
   align-items: flex-start;
-  gap: .6rem;
+  gap: .75rem;
   font-weight: 400;
   cursor: pointer;
+  padding: .85rem 1rem;
+  border: 1px solid var(--k-border, #d8d2c8);
+  border-radius: 6px;
+  background: #fbfaf8;
+  line-height: 1.5;
 }
-#coop-apply-form .check input { margin-top: .25rem; flex: none; }
+
+#coop-apply-form .check:hover { background: #f4f1ec; }
+
+#coop-apply-form .check:focus-within {
+  outline: 2px solid var(--k-accent, #8b7355);
+  outline-offset: 2px;
+}
+
+#coop-apply-form .check input {
+  flex: none;
+  width: 1.5rem;
+  height: 1.5rem;
+  margin: 0;
+  accent-color: var(--k-accent, #8b7355);
+  cursor: pointer;
+}
+
+/* The documents are read, not agreed to in passing, so they are their own
+ * links underneath rather than inline in the sentence — where tapping one
+ * would both open the page and tick the box. */
+#coop-apply-form .check-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .4rem 1.25rem;
+  margin-top: .6rem;
+  padding-left: 1rem;
+}
+
+#coop-apply-form .check-links a,
+#coop-apply-form .check-links a:visited {
+  /* The theme greys out visited links, which left the Statement of Faith
+     looking like plain text after one reading — the opposite of what a
+     document somebody must open should look like. */
+  padding: .35rem 0;
+  font-weight: 600;
+  color: var(--k-accent, #2a63ab);
+  text-decoration: underline;
+}
 
 #coop-apply-form button {
   padding: .7rem 1.6rem;
